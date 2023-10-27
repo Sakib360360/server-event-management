@@ -33,7 +33,6 @@ async function run() {
     app.get("/events", async(req, res)=>{
         // const email = req.query.email;
         const query = {};
-
         const result = await eventsCollection.find(query).toArray();
         res.send(result);
     });
