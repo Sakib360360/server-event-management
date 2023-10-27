@@ -31,8 +31,8 @@ async function run() {
 
     // get all the events based on user's email
     app.get("/events", async(req, res)=>{
-        const email = req.query.email;
-        const query = {email: email};
+        // const email = req.query.email;
+        const query = {};
 
         const result = await eventsCollection.find(query).toArray();
         res.send(result);
