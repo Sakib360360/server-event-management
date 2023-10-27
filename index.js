@@ -87,7 +87,7 @@ run().catch(console.dir);
 
 
 app.get("/", (req, res)=>{
-    res.send("server running");
+    res.send("server running in localhost");
 });
 
 app.listen(port, ()=>{
