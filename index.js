@@ -28,6 +28,7 @@ async function run() {
     await client.connect();
 
     const eventsCollection = client.db("EventsDB").collection("events");
+    const usersCollection = client.db("EventsDB").collection("users");
 
     // get all the events based on user's email
     app.get("/events", async(req, res)=>{
@@ -68,6 +69,7 @@ async function run() {
         res.send(result);
     });
 
+
     // delete from the database
     app.delete("/events/:id", async(req, res)=>{
         const id = req.params.id;
@@ -75,6 +77,29 @@ async function run() {
         const result = await eventsCollection.deleteOne(query);
         res.send(result);
     });
+
+    
+      // save user into the database
+      app.post("/users", async (req, res) => {
+        const user = req.body;
+        const query = { email: user.email };
+        const userExists = await usersCollection.findOne(query);
+  
+        if (userExists) {
+          return res.send({ message: "user already exists" });
+        }
+  
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+      });
+          // get all the users from database
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
