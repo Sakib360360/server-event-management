@@ -46,6 +46,7 @@ async function run() {
     const eventsCollection = client.db("EventsDB").collection("events");
     const usersCollection = client.db("EventsDB").collection("users");
     const messagesCollection = client.db("EventsDB").collection("messages");
+    const likedCollection = client.db("EventsDB").collection("likedEvents")
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -167,18 +168,47 @@ async function run() {
     });
 
     // update a message
-    app.patch("/messages/:id", async (req, res)=>{
+    app.patch("/messages/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
 
       const updateDoc = {
-        $set:{
+        $set: {
           status: "seen"
         }
       }
 
       const result = await messagesCollection.updateOne(query, updateDoc);
       res.send(result);
+    });
+
+    //   save to favorite
+    app.post('/addToLiked', async (req, res) => {
+      const user = req.body; // Assuming the user object is sent in the request body
+
+      try {
+        // Check if the user already exists in the favorites collection
+        const existingUser = await likedCollection.findOne({ username: user.email });
+
+        if (existingUser) {
+          // User already exists, update the entire document
+          await likedCollection.updateOne(
+            { username: user.email },
+            { $set: { likedEvents: user.likedEvents } }
+          );
+        } else {
+          // User doesn't exist, create a new document
+          await likedCollection.insertOne({
+            username: user.email,
+            likedEvents: user.likedEvents,
+          });
+        }
+
+        res.send({ message: 'User added successfully' });
+      } catch (error) {
+        console.error('Error adding user:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
     });
 
     // Send a ping to confirm a successful connection
