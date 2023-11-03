@@ -100,17 +100,17 @@ async function run() {
         
             try {
               // Check if the user already exists in the favorites collection
-              const existingUser = await likedCollection('favorites').findOne({ username: user.email });
+              const existingUser = await likedCollection.findOne({ username: user.email });
         
               if (existingUser) {
                 // User already exists, update the entire document
-                await likedCollection('favorites').updateOne(
+                await likedCollection.updateOne(
                   { username: user.email },
                   { $set: { likedEvents: user.likedEvents } }
                 );
               } else {
                 // User doesn't exist, create a new document
-                await likedCollection('favorites').insertOne({
+                await likedCollection.insertOne({
                   username: user.email,
                   likedEvents: user.likedEvents,
                 });
