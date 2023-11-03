@@ -116,7 +116,7 @@ async function run() {
                 });
               }
         
-              res.status(200).json({ message: 'User added successfully' });
+              res.send({ message: 'User added successfully' });
             } catch (error) {
               console.error('Error adding user:', error);
               res.status(500).json({ error: 'Internal Server Error' });
