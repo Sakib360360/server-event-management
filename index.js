@@ -167,6 +167,19 @@ async function run() {
             res.send(result);
         });
 
+        app.patch("/messages", async (req, res) => {
+          const query = { status: "unseen" };
+        
+          const updateDoc = {
+            $set: {
+              status: "seen"
+            }
+          }
+        
+          const result = await messagesCollection.updateMany(query, updateDoc);
+          res.send(result);
+        });
+
         // update a message
         app.patch("/messages/:id", async (req, res) => {
             const id = req.params.id;
