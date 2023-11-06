@@ -47,6 +47,7 @@ async function run() {
         const usersCollection = client.db("EventsDB").collection("users");
         const messagesCollection = client.db("EventsDB").collection("messages");
         const likedCollection = client.db("EventsDB").collection("likedEvents")
+        const paymentCollection = client.db("EventsDB").collection("payment")
 
         app.post("/jwt", (req, res) => {
             const user = req.body;
@@ -84,10 +85,43 @@ async function run() {
             next()
         }
 
+        // get data from database
+        app.get("/all-events", async (req, res) => {
+            try {
+                let pageSize = req.query.pageSize;
+                pageSize = parseInt(pageSize) || 10
+
+                const page = req.query.currentPage || 1;
+
+                if (isNaN(pageSize) || isNaN(page)) {
+                    return res.status(400).json({ error: "Invalid pagination parameters" });
+                }
+
+                const skipItems = (page - 1) * pageSize;
+                const filter = {};
+
+                if (req.query.status && req.query.status !== 'null') {
+                    filter.eventStatus = req.query.status;
+                }
+                
+                console.log(filter);
+
+                const result = await eventsCollection.find(filter).skip(skipItems).limit(pageSize).toArray();
+
+                // Get total count for pagination metadata
+                const totalCount = await eventsCollection.countDocuments(filter);
+                res.json({ items: result, totalPages: Math.ceil(totalCount / pageSize) });
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                res.status(500).json({ error: "Server error" });
+            }
+        });
+
         // get all the events based on user's email
         app.get("/events", async (req, res) => {
-            // const email = req.query.email;
-            const query = {};
+            const email = req.query.email;
+            const query = { email: email };
             const result = await eventsCollection.find(query).toArray();
             res.send(result);
         });
@@ -156,7 +190,18 @@ async function run() {
         // get user message
         app.get("/messages", async (req, res) => {
             const query = {};
-            const result = await messagesCollection.find(query).toArray();
+            const options = {
+                sort: { "date": -1 }
+            }
+            const result = await messagesCollection.find(query, options).toArray();
+            res.send(result);
+        });
+
+        // get a single message
+        app.get("/messages/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await messagesCollection.findOne(query);
             res.send(result);
         });
 
@@ -168,16 +213,16 @@ async function run() {
         });
 
         app.patch("/messages", async (req, res) => {
-          const query = { status: "unseen" };
-        
-          const updateDoc = {
-            $set: {
-              status: "seen"
+            const query = { status: "unseen" };
+
+            const updateDoc = {
+                $set: {
+                    status: "seen"
+                }
             }
-          }
-        
-          const result = await messagesCollection.updateMany(query, updateDoc);
-          res.send(result);
+
+            const result = await messagesCollection.updateMany(query, updateDoc);
+            res.send(result);
         });
 
         // update a message
@@ -192,6 +237,14 @@ async function run() {
             }
 
             const result = await messagesCollection.updateOne(query, updateDoc);
+            res.send(result);
+        });
+
+        // delete a message
+        app.delete("/messages/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await messagesCollection.deleteOne(query)
             res.send(result);
         });
 
