@@ -78,7 +78,7 @@ async function run() {
         res.send(result);
     });
 
-    
+    // favorite events api here 
       // save user into the database
       app.post("/users", async (req, res) => {
         const user = req.body;
@@ -98,7 +98,43 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
 
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+ /*    //payment api
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      console.log(payment);
+      const insertResult = await paymentCollection.insertOne(payment);    
+      const query = { _id: new ObjectId(payment.classId) };
+      console.log(query);
+      //class and my class different
+      const queryClass = { classId: payment.classId };
+      const deleteResult = await myClassCollection.deleteOne(queryClass)
+      ;
+     const classinfo = await classCollection.findOne(query);
+     const newSeat = parseFloat(classinfo?.availableSeats) - 1;
+     const newStudents = parseFloat(classinfo?.students) +1;
+     const updateSeat = {
+                   $set:{ availableSeats: newSeat, 
+                          students: newStudents
+                  }
+
+                   
+     }
+     const updateClassSeat = await classCollection.updateOne(query, updateSeat);
+      res.send({ insertResult, deleteResult });
+    }); */
     
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
