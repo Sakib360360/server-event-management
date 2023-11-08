@@ -38,6 +38,20 @@ async function run() {
         res.send(result);
     });
 
+    app.get("/events/:id", async(req, res)=>{
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id)} 
+   
+      const result = await eventsCollection.findOne(query);
+      if (result) {
+        console.log(result);
+        res.send(result);
+      } else {
+        res.status(404).send('Event not found');
+      }
+  });
+
+
     // save the event into the database
     app.post("/events", async(req, res)=>{
         const event = req.body;
