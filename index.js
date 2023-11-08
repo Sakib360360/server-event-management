@@ -103,8 +103,6 @@ async function run() {
                 if (req.query.status && req.query.status !== 'null') {
                     filter.eventStatus = req.query.status;
                 }
-                
-                console.log(filter);
 
                 const result = await eventsCollection.find(filter).skip(skipItems).limit(pageSize).toArray();
 
@@ -125,6 +123,13 @@ async function run() {
             const result = await eventsCollection.find(query).toArray();
             res.send(result);
         });
+
+        app.get("/events/:id", async (req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await eventsCollection.findOne(query);
+            res.send(result);
+        })
 
         // save the event into the database
         app.post("/events", async (req, res) => {
@@ -156,6 +161,21 @@ async function run() {
             const result = await eventsCollection.updateOne(query, updateDoc);
             res.send(result);
         });
+
+        app.patch("/update-event/:id", async (req, res)=>{
+            const id = req.params.id;
+            const status = req.query.status;
+            const query = {_id: new ObjectId(id)};
+
+            const updateDoc = {
+                $set: {
+                    eventStatus: status
+                }
+            }
+
+            const result = await eventsCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
 
 
         // delete from the database
