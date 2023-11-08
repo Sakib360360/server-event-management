@@ -142,14 +142,15 @@ async function run() {
 
             const updateDoc = {
                 $set: {
-                    name: event.name,
-                    description: event.description,
-                    image: event.image,
-                    date: event.date,
-                    time: event.time,
-                    location: event.location,
-                    category: event.category,
-                    tickets: event.tickets
+                    eventName: event.eventName,
+                    eventDescription: event.eventDescription,
+                    imageUrl: event.imageUrl,
+                    eventDate: event.eventDate,
+                    eventTime: event.eventTime,
+                    eventLocation: event.eventLocation,
+                    eventCategory: event.eventCategory,
+                    ticketsAvailable: event.ticketsAvailable,
+                    ticketPrice: event.ticketPrice
                 }
             }
 
