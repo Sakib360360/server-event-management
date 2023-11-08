@@ -158,6 +158,20 @@ async function run() {
             res.send(result);
         });
 
+        // event by id
+        app.get("/events/:id", async(req, res)=>{
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id)} 
+      
+            const result = await eventsCollection.findOne(query);
+            if (result) {
+      
+              res.send(result);
+            } else {
+              res.status(404).send('Event not found');
+            }
+        });
+
 
         // delete from the database
         app.delete("/events/:id", async (req, res) => {
