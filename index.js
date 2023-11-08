@@ -149,7 +149,7 @@ async function run() {
                     eventTime: event.eventTime,
                     eventLocation: event.eventLocation,
                     eventCategory: event.eventCategory,
-                    ticketsAvailable: event.ticketsAvailable,
+                    ticketAvailable: event.ticketAvailable,
                     ticketPrice: event.ticketPrice
                 }
             }
