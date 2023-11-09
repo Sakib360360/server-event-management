@@ -351,7 +351,91 @@ async function run() {
             const query = { username: email }
             const result = await likedCollection.find(query).toArray()
             res.send(result)
-        })
+        });
+  // tranx_id
+    const tranx_id = new ObjectId().toString();
+    //payment api
+    app.post("/order", async (req, res) => {
+      const event = await eventsCollection.findOne({
+        _id: new ObjectId(req.body.eventId),
+      });
+
+
+      const order = req.body;
+      const price = parseFloat(event.ticketPrice);
+      console.log(price);
+      const data = {
+        total_amount: price,
+        currency: order.currency,
+        tran_id: tranx_id, // use unique tran_id for each api call
+        success_url: `http://localhost:5000/payments/success/${tranx_id}`,
+        fail_url: `http://localhost:5000/payments/fail/${tranx_id}`,
+        cancel_url: "http://localhost:3030/cancel",
+        ipn_url: "http://localhost:3030/ipn",
+        shipping_method: "Courier",
+        product_name: event.eventName,
+        product_category: "Tickets",
+        product_profile: "general",
+        cus_name: order.name,
+        cus_email: order.email,
+        cus_add1: "Dhaka",
+        cus_add2: "Dhaka",
+        cus_city: "Dhaka",
+        cus_state: "Dhaka",
+        cus_postcode: "1000",
+        cus_country: "Bangladesh",
+        cus_phone: order.phone,
+        cus_fax: "01711111111",
+        ship_name: "Customer Name",
+        ship_add1: "Dhaka",
+        ship_add2: "Dhaka",
+        ship_city: "Dhaka",
+        ship_state: "Dhaka",
+        ship_postcode: 1000,
+        ship_country: "Bangladesh",
+      };
+      //console.log(data)
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      sslcz.init(data).then((apiResponse) => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL;
+        res.send({ url: GatewayPageURL });
+        const finalPayment = {
+          event,
+          paidStatus: false,
+          tranjectionId: tranx_id,
+          user: order.email
+        };
+        const result = paymentCollection.insertOne(finalPayment);
+        console.log("Redirecting to: ", GatewayPageURL);
+      });
+      app.post("/payments/success/:trx_Id", async (req, res) => {
+        console.log(req.params.trx_Id);
+        const result = await paymentsCollection.updateOne(
+          { tranjectionId: req.params.trx_Id },
+          {
+            $set: {
+              paidStatus: true,
+            },
+          }
+        );
+        if (result.modifiedCount > 0) {
+          res.redirect(
+            `http://localhost:3000/dashboard/payments/success/${req.params.trx_Id}`
+          );
+        }
+      });
+      app.post("/payments/fail/:trx_Id", async (req, res) => {
+         const result = await paymentCollection.deleteOne({ tranjectionId: req.params.trx_Id })
+         if(result.deletedCount){
+          res.redirect(
+            `http://localhost:3000/dashboard/payments/fail/${req.params.trx_Id}`
+          );
+         }
+      })
+    });
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
