@@ -47,7 +47,7 @@ async function run() {
         const usersCollection = client.db("EventsDB").collection("users");
         const messagesCollection = client.db("EventsDB").collection("messages");
         const likedCollection = client.db("EventsDB").collection("likedEvents")
-        const paymentCollection = client.db("EventsDB").collection("payment")
+        const paymentCollection = client.db("EventsDB").collection("payments")
 
         app.post("/jwt", (req, res) => {
             const user = req.body;
@@ -103,8 +103,6 @@ async function run() {
                 if (req.query.status && req.query.status !== 'null') {
                     filter.eventStatus = req.query.status;
                 }
-                
-                console.log(filter);
 
                 const result = await eventsCollection.find(filter).skip(skipItems).limit(pageSize).toArray();
 
@@ -125,6 +123,13 @@ async function run() {
             const result = await eventsCollection.find(query).toArray();
             res.send(result);
         });
+
+        app.get("/events/:id", async (req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await eventsCollection.findOne(query);
+            res.send(result);
+        })
 
         // save the event into the database
         app.post("/events", async (req, res) => {
@@ -149,7 +154,7 @@ async function run() {
                     eventTime: event.eventTime,
                     eventLocation: event.eventLocation,
                     eventCategory: event.eventCategory,
-                    ticketsAvailable: event.ticketsAvailable,
+                    ticketAvailable: event.ticketAvailable,
                     ticketPrice: event.ticketPrice
                 }
             }
@@ -157,6 +162,21 @@ async function run() {
             const result = await eventsCollection.updateOne(query, updateDoc);
             res.send(result);
         });
+
+        app.patch("/update-event/:id", async (req, res)=>{
+            const id = req.params.id;
+            const status = req.query.status;
+            const query = {_id: new ObjectId(id)};
+
+            const updateDoc = {
+                $set: {
+                    eventStatus: status
+                }
+            }
+
+            const result = await eventsCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
 
 
         // delete from the database
@@ -181,11 +201,48 @@ async function run() {
             const result = await usersCollection.insertOne(user);
             res.send(result);
         });
+
         // get all the users from database
         app.get("/users", async (req, res) => {
-            const result = await usersCollection.find().toArray();
-            res.send(result);
+            try {
+                let pageSize = req.query.pageSize;
+                pageSize = parseInt(pageSize) || 10
+
+                const page = req.query.currentPage || 1;
+
+                if (isNaN(pageSize) || isNaN(page)) {
+                    return res.status(400).json({ error: "Invalid pagination parameters" });
+                }
+
+                const skipItems = (page - 1) * pageSize;
+                const filter = {};
+
+                if (req.query.role && req.query.role !== 'null') {
+                    filter.role = req.query.role;
+                }
+
+                const result = await usersCollection.find(filter).skip(skipItems).limit(pageSize).toArray();
+
+                // Get total count for pagination metadata
+                const totalCount = await usersCollection.countDocuments(filter);
+                res.json({ items: result, totalPages: Math.ceil(totalCount / pageSize) });
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                res.status(500).json({ error: "Server error" });
+            }
         });
+
+        app.get("/users/role/:email", async(req, res)=>{
+            const email = req.params.email;
+            // if(req.decoded.email !== email){
+            //   res.send({role: null})
+            // }
+            const query = {email: email};
+            const user = await usersCollection.findOne(query);
+            const result = {role: user?.role}
+            res.send(result);
+          });
 
 
         // get user message
