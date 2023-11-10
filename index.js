@@ -243,6 +243,14 @@ async function run() {
             }
         });
 
+        // get a single user data
+        app.get("/users/:id", async(req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await usersCollection.findOne(query);
+            res.send(result);
+        })
+
         app.get("/users/role/:email", async(req, res)=>{
             const email = req.params.email;
             // if(req.decoded.email !== email){
@@ -253,6 +261,21 @@ async function run() {
             const result = {role: user?.role}
             res.send(result);
           });
+
+        app.patch("/users/:id", async (req, res)=>{
+            const id = req.params.id;
+            const role = req.query.role;
+            const query = {_id: new ObjectId(id)};
+
+            const updateDoc = {
+                $set: {
+                    role: role
+                }
+            }
+
+            const result = await usersCollection.updateOne(query, updateDoc);
+            res.send(result);
+        });
 
 
         // get user message
