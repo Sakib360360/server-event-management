@@ -363,7 +363,7 @@ async function run() {
 
       const order = req.body;
       const price = parseFloat(event.ticketPrice);
-      console.log(price);
+      //console.log(price);
       const data = {
         total_amount: price,
         currency: order.currency,
@@ -404,14 +404,14 @@ async function run() {
           event,
           paidStatus: false,
           tranjectionId: tranx_id,
-          user: order.email
+          email: order.email
         };
         const result = paymentCollection.insertOne(finalPayment);
-        console.log("Redirecting to: ", GatewayPageURL);
+        //console.log("Redirecting to: ", GatewayPageURL);
       });
       app.post("/payments/success/:trx_Id", async (req, res) => {
         console.log(req.params.trx_Id);
-        const result = await paymentsCollection.updateOne(
+        const result = await paymentCollection.updateOne(
           { tranjectionId: req.params.trx_Id },
           {
             $set: {
@@ -421,7 +421,7 @@ async function run() {
         );
         if (result.modifiedCount > 0) {
           res.redirect(
-            `http://localhost:3000/dashboard/payments/success/${req.params.trx_Id}`
+            `https://event-management-nu.vercel.app/dashboard/payments/success/${req.params.trx_Id}`
           );
         }
       });
@@ -429,11 +429,20 @@ async function run() {
          const result = await paymentCollection.deleteOne({ tranjectionId: req.params.trx_Id })
          if(result.deletedCount){
           res.redirect(
-            `http://localhost:3000/dashboard/payments/fail/${req.params.trx_Id}`
+            `https://event-management-nu.vercel.app/dashboard/payments/fail/${req.params.trx_Id}`
           );
          }
       })
     });
+      
+      //registered events api and payment history
+      app.get("/payments/registeredevents", async (req, res) =>{
+        const email = req.query.email;
+        const query = { email: email };
+        const result = await paymentCollection.find(query).toArray();
+        //console.log(result)
+        res.send(result);
+      })
 
 
 
