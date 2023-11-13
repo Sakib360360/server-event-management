@@ -342,20 +342,20 @@ async function run() {
 
         //   save to favorite
         app.post('/addToLiked', async (req, res) => {
-            const user = req.body; // Assuming the user object is sent in the request body
+            const user = req.body; 
 
             try {
-                // Check if the user already exists in the favorites collection
+                
                 const existingUser = await likedCollection.findOne({ username: user.email });
 
                 if (existingUser) {
-                    // User already exists, update the entire document
+                    
                     await likedCollection.updateOne(
                         { username: user.email },
                         { $set: { likedEvents: user.likedEvents } }
                     );
                 } else {
-                    // User doesn't exist, create a new document
+                    
                     await likedCollection.insertOne({
                         username: user.email,
                         likedEvents: user.likedEvents,
@@ -376,6 +376,33 @@ async function run() {
             const result = await likedCollection.find(query).toArray()
             res.send(result)
         });
+        // get all favorite
+        app.get(`/allLiked`, async (req, res) => {
+            const result = await likedCollection.find().toArray()
+            res.send(result)
+        });
+        // delete from favorite
+        app.delete('/deleteFavEvent/:username/:eventId', async (req, res) => {
+            try {
+              const username = req.params.username;
+              const eventId = req.params.eventId;
+          
+              // Update the document in the collection
+              const result = await likedCollection.updateOne(
+                { username: username },
+                { $pull: { likedEvents: eventId } }
+              );
+          
+              if (result.modifiedCount > 0) {
+                res.status(200).json({ success: true, message: 'Event deleted successfully.' });
+              } else {
+                res.status(404).json({ success: false, message: 'User or event not found.' });
+              }
+            } catch (error) {
+              console.error(error);
+              res.status(500).json({ success: false, message: 'Internal Server Error' });
+            }
+          });
         // tranx_id
         const tranx_id = new ObjectId().toString();
         //payment api
