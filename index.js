@@ -32,11 +32,11 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    },
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
@@ -58,6 +58,7 @@ async function run() {
         const messagesCollection = client.db("EventsDB").collection("messages");
         const likedCollection = client.db("EventsDB").collection("likedEvents")
         const paymentCollection = client.db("EventsDB").collection("payments")
+        const feedbackCollection = client.db("EventsDB").collection("feedbacks")
 
         app.post("/jwt", (req, res) => {
             const user = req.body;
@@ -134,9 +135,9 @@ async function run() {
             res.send(result);
         });
 
-        app.get("/events/:id", async (req, res)=>{
+        app.get("/events/:id", async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await eventsCollection.findOne(query);
             res.send(result);
         })
@@ -173,10 +174,10 @@ async function run() {
             res.send(result);
         });
 
-        app.patch("/update-event/:id", async (req, res)=>{
+        app.patch("/update-event/:id", async (req, res) => {
             const id = req.params.id;
             const status = req.query.status;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
 
             const updateDoc = {
                 $set: {
@@ -244,28 +245,28 @@ async function run() {
         });
 
         // get a single user data
-        app.get("/users/:id", async(req, res)=>{
+        app.get("/users/:id", async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await usersCollection.findOne(query);
             res.send(result);
         })
 
-        app.get("/users/role/:email", async(req, res)=>{
+        app.get("/users/role/:email", async (req, res) => {
             const email = req.params.email;
             // if(req.decoded.email !== email){
             //   res.send({role: null})
             // }
-            const query = {email: email};
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
-            const result = {role: user?.role}
+            const result = { role: user?.role }
             res.send(result);
-          });
+        });
 
-        app.patch("/users/:id", async (req, res)=>{
+        app.patch("/users/:id", async (req, res) => {
             const id = req.params.id;
             const role = req.query.role;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
 
             const updateDoc = {
                 $set: {
@@ -375,90 +376,138 @@ async function run() {
             const result = await likedCollection.find(query).toArray()
             res.send(result)
         });
-  // tranx_id
-    const tranx_id = new ObjectId().toString();
-    //payment api
-    app.post("/order", async (req, res) => {
-      const event = await eventsCollection.findOne({
-        _id: new ObjectId(req.body.eventId),
-      });
+        // tranx_id
+        const tranx_id = new ObjectId().toString();
+        //payment api
+        app.post("/order", async (req, res) => {
+            const event = await eventsCollection.findOne({
+                _id: new ObjectId(req.body.eventId),
+            });
 
 
-      const order = req.body;
-      const price = parseFloat(event.ticketPrice);
-      console.log(price);
-      const data = {
-        total_amount: price,
-        currency: order.currency,
-        tran_id: tranx_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payments/success/${tranx_id}`,
-        fail_url: `http://localhost:5000/payments/fail/${tranx_id}`,
-        cancel_url: "http://localhost:3030/cancel",
-        ipn_url: "http://localhost:3030/ipn",
-        shipping_method: "Courier",
-        product_name: event.eventName,
-        product_category: "Tickets",
-        product_profile: "general",
-        cus_name: order.name,
-        cus_email: order.email,
-        cus_add1: "Dhaka",
-        cus_add2: "Dhaka",
-        cus_city: "Dhaka",
-        cus_state: "Dhaka",
-        cus_postcode: "1000",
-        cus_country: "Bangladesh",
-        cus_phone: order.phone,
-        cus_fax: "01711111111",
-        ship_name: "Customer Name",
-        ship_add1: "Dhaka",
-        ship_add2: "Dhaka",
-        ship_city: "Dhaka",
-        ship_state: "Dhaka",
-        ship_postcode: 1000,
-        ship_country: "Bangladesh",
-      };
-      //console.log(data)
-      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
-      sslcz.init(data).then((apiResponse) => {
-        // Redirect the user to payment gateway
-        let GatewayPageURL = apiResponse.GatewayPageURL;
-        res.send({ url: GatewayPageURL });
-        const finalPayment = {
-          event,
-          paidStatus: false,
-          tranjectionId: tranx_id,
-          user: order.email
-        };
-        const result = paymentCollection.insertOne(finalPayment);
-        console.log("Redirecting to: ", GatewayPageURL);
-      });
-      app.post("/payments/success/:trx_Id", async (req, res) => {
-        console.log(req.params.trx_Id);
-        const result = await paymentsCollection.updateOne(
-          { tranjectionId: req.params.trx_Id },
-          {
-            $set: {
-              paidStatus: true,
-            },
-          }
-        );
-        if (result.modifiedCount > 0) {
-          res.redirect(
-            `http://localhost:3000/dashboard/payments/success/${req.params.trx_Id}`
-          );
-        }
-      });
-      app.post("/payments/fail/:trx_Id", async (req, res) => {
-         const result = await paymentCollection.deleteOne({ tranjectionId: req.params.trx_Id })
-         if(result.deletedCount){
-          res.redirect(
-            `http://localhost:3000/dashboard/payments/fail/${req.params.trx_Id}`
-          );
-         }
-      })
-    });
+            const order = req.body;
+            const price = parseFloat(event.ticketPrice);
+            //console.log(price);
+            const data = {
+                total_amount: price,
+                currency: order.currency,
+                tran_id: tranx_id, // use unique tran_id for each api call
+                success_url: `http://localhost:5000/payments/success/${tranx_id}`,
+                fail_url: `http://localhost:5000/payments/fail/${tranx_id}`,
+                cancel_url: "http://localhost:3030/cancel",
+                ipn_url: "http://localhost:3030/ipn",
+                shipping_method: "Courier",
+                product_name: event.eventName,
+                product_category: "Tickets",
+                product_profile: "general",
+                cus_name: order.name,
+                cus_email: order.email,
+                cus_add1: "Dhaka",
+                cus_add2: "Dhaka",
+                cus_city: "Dhaka",
+                cus_state: "Dhaka",
+                cus_postcode: "1000",
+                cus_country: "Bangladesh",
+                cus_phone: order.phone,
+                cus_fax: "01711111111",
+                ship_name: "Customer Name",
+                ship_add1: "Dhaka",
+                ship_add2: "Dhaka",
+                ship_city: "Dhaka",
+                ship_state: "Dhaka",
+                ship_postcode: 1000,
+                ship_country: "Bangladesh",
+            };
+            //console.log(data)
+            const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+            sslcz.init(data).then((apiResponse) => {
+                // Redirect the user to payment gateway
+                let GatewayPageURL = apiResponse.GatewayPageURL;
+                res.send({ url: GatewayPageURL });
+                const finalPayment = {
+                    event,
+                    paidStatus: false,
+                    tranjectionId: tranx_id,
+                    email: order.email
+                };
+                const result = paymentCollection.insertOne(finalPayment);
+                //console.log("Redirecting to: ", GatewayPageURL);
+            });
+            app.post("/payments/success/:trx_Id", async (req, res) => {
+                console.log(req.params.trx_Id);
+                const result = await paymentCollection.updateOne(
+                    { tranjectionId: req.params.trx_Id },
+                    {
+                        $set: {
+                            paidStatus: true,
+                        },
+                    }
+                );
+                if (result.modifiedCount > 0) {
+                    res.redirect(
+                        `https://event-management-nu.vercel.app/dashboard/payments/success/${req.params.trx_Id}`
+                    );
+                }
+            });
+            app.post("/payments/fail/:trx_Id", async (req, res) => {
+                const result = await paymentCollection.deleteOne({ tranjectionId: req.params.trx_Id })
+                if (result.deletedCount) {
+                    res.redirect(
+                        `https://event-management-nu.vercel.app/dashboard/payments/fail/${req.params.trx_Id}`
+                    );
+                }
+            })
+        });
 
+        //registered events api and payment history
+        app.get("/payments/registeredevents", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const result = await paymentCollection.find(query).toArray();
+            //console.log(result)
+            res.send(result);
+        });
 
+        app.get("/testimonial", async (req, res)=>{
+            const status = req.query.status;
+            const query = {status};
+            const result = await feedbackCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        app.get("/feedback", async (req, res)=>{
+            const query = {};
+            const result = await feedbackCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        app.post("/feedback", async (req, res)=>{
+            const feedback = req.body;
+            console.log(feedback)
+            // console.log(feedback)
+            const result = await feedbackCollection.insertOne(feedback);
+            res.send(result);
+        });
+
+        app.patch("/feedback/:id", async (req, res)=>{
+            const id = req.params.id;
+            const status = req.query.status;
+            const query = {_id: new ObjectId(id)};
+            const updateDoc = {
+                $set: {
+                    status
+                }
+            }
+            const result = await feedbackCollection.updateOne(query, updateDoc);
+            res.send(result);
+        });
+
+        app.delete("/feedback/:id", async (req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await feedbackCollection.deleteOne(query);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
