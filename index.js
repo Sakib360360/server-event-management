@@ -487,6 +487,21 @@ async function run() {
             })
         });
 
+        // ********sadia********//
+        // get payment
+        app.get("/payments",async (req,res)=>{
+            const result = await paymentCollection.find().toArray();
+            res.send(result);
+        })
+        app.get("/getPaidStatusCount",async (req,res)=>{
+            const trueCount = await paymentCollection.countDocuments({paidStatus:true});
+            const falseCount = await paymentCollection.countDocuments({paidStatus:false});
+            console.log(trueCount);
+            console.log(falseCount);
+
+            res.send({trueCount,falseCount});
+        })
+
         //registered events api and payment history
         app.get("/payments/registeredevents", async (req, res) => {
             const email = req.query.email;
