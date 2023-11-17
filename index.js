@@ -515,10 +515,8 @@ async function run() {
         app.get("/getPaidStatusCount",async (req,res)=>{
             const trueCount = await paymentCollection.countDocuments({paidStatus:true});
             const falseCount = await paymentCollection.countDocuments({paidStatus:false});
-            console.log(trueCount);
-            console.log(falseCount);
-
-            res.send({trueCount,falseCount});
+            const totalCount = await paymentCollection.countDocuments({});
+            res.send({trueCount,falseCount, totalCount});
         })
 
         //registered events api and payment history
