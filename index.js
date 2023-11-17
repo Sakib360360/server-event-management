@@ -382,6 +382,25 @@ async function run() {
             const result = await likedCollection.find().toArray()
             res.send(result)
         });
+        // get all favorites in array
+        app.get("/allLikedEventIds", async (req, res) => {
+            try {
+              const allLikedEvents = await likedCollection.find().toArray();
+          
+              let allEventIds = [];
+          
+              allLikedEvents.forEach(userLikedEvents => {
+                if (userLikedEvents.likedEvents && userLikedEvents.likedEvents.length > 0) {
+                  allEventIds = allEventIds.concat(userLikedEvents.likedEvents);
+                }
+              });
+          
+              res.json({ allEventIds });
+            } catch (err) {
+              console.error('Error:', err);
+              res.status(500).json({ error: 'Internal Server Error' });
+            }
+          });
         // delete from favorite
         app.delete('/deleteFavEvent/:username/:eventId', async (req, res) => {
             try {
